@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+//import 'dart:convert';
+import 'spider.dart' as spider;
 
 void main() => runApp(MyApp());
 
@@ -44,16 +46,12 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+  String _text = "";
 
-  void _incrementCounter() {
+  void _run_spider() async{
+    var data = await spider.html_parse();
     setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
+      _text = data; // json.encode({'items':data});
     });
   }
 
@@ -92,17 +90,14 @@ class _MyHomePageState extends State<MyHomePage> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
             Text(
-              '你按下按钮的次数是:',
-            ),
-            Text(
-              '$_counter',
+              '$_text',
               style: Theme.of(context).textTheme.display1,
             ),
           ],
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
+        onPressed: _run_spider,
         tooltip: 'Increment',
         child: Icon(Icons.add),
       ), // This trailing comma makes auto-formatting nicer for build methods.
