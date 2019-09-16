@@ -1,0 +1,34 @@
+{
+  "provinces": {
+    "sd": {
+      "name": "山东",
+      "55128": "80_467.htm"
+    },
+    "gd": {
+      "name": "广东",
+      "55128": "72_396.htm"
+    },
+    "js": {
+      "name": "江苏",
+      "55128": "76_431.htm"
+    },
+    "jx": {
+      "name": "江西",
+      "55128": "77_440.htm"
+    },
+    "sh": {
+      "name": "上海",
+      "55128": "81_476.htm"
+    },
+    "ah": {
+      "name": "安徽",
+      "55128": "70_378.htm"
+    }
+  },
+  "55128": {
+    "baseUrl": "https://www.55128.cn/zs/",
+    "dateParamName": "searchTime",
+    "dateParamValueFormat": "%Y-%m-%d",
+    "defaultStartDate": "20180101"
+  }
+}
