@@ -28,7 +28,7 @@
   "55128": {
     "baseUrl": "https://www.55128.cn/zs/",
     "dateParamName": "searchTime",
-    "dateParamValueFormat": "%Y-%m-%d",
+    "dateParamValueFormat": "yyyy-MM-dd",
     "defaultStartDate": "20180101"
   }
 }

@@ -1,6 +1,7 @@
 import 'dart:async' show Future;
-import 'dart:convert' show json;
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:quicklibs/quicklibs.dart';
 
 class Repository {
   BuildContext context;
@@ -26,13 +27,16 @@ class Repository {
   }
 
   // 从本地加载数据
-  Map<String, List<String>> loadData(String province) {}
+  List<Item> loadData(String province, String date) {
+    List<Item> items = new List<Item>();
+    return items;
+  }
 
   // 保存数据到本地
-  saveData(String province) async {}
+  void saveData(String province) async {}
 
   // 检查网上数据源，更新本地数据
-  update(String province) {
+  void update(String province) async {
     // 获取当前期次
     // 获取下一期次及时间
     // 确定更新数据范围
@@ -43,7 +47,7 @@ class Repository {
   }
 
   // 全部更新
-  updateAll() {
+  void updateAll() async {
     provinces.forEach((key, value) => {update(key)});
   }
 }
@@ -69,15 +73,38 @@ class ProvinceConfig {
 }
 
 class Item {
+  static final DateTime startDay = new DateTime(2018, 1, 1);
+
+  // TODO 将 id 分解为 date 和 no，有利于按行列存储
   String id;
-  Set<String> data;
+  Set<int> data;
 
   Item(this.id, this.data);
+
+  Item.fromInt(int num) {
+    data = new Set<int>();
+    for (int i = 0; i < 11; i++) {
+      if (1 & num > 0) {
+        data.add(i + 1);
+      }
+      num >>= 1;
+    }
+    String id1 = (num % 100).toString();
+    if (id1.length == 1) id1 = '0$id1';
+    int id2 = num ~/ 1;
+    id =
+        Time.format(startDay.add(new Duration(days: id2)), 'yyyyMMdd') + '$id1';
+  }
 
   Item.fromString(String str) {
     List<String> d = str.split(',').map((s) => _trimLeft0(s)).toList();
     id = d[0];
-    data = d.sublist(1).toSet();
+    if (id.length == 8)
+      id = '20' + id;
+    else if (id.length < 8 || id.length == 9 || id.length > 10) {
+      print('期次格式错误：$id');
+    }
+    data = d.sublist(1).map((s) => int.parse(s)).toSet();
   }
 
   static String _trimLeft0(String str) {
@@ -90,9 +117,9 @@ class Item {
 
   bool contains(var i) {
     if (i is String) {
-      i = _trimLeft0(i);
+      i = int.parse(i);
     }
-    return data.contains('$i');
+    return data.contains(i);
   }
 
   int difference(Set set) {
@@ -101,7 +128,33 @@ class Item {
     return count;
   }
 
-  String toString() {
-    return data.fold('$id', (current, next) => current += ',$next');
+  int toInt() {
+    int id1 = int.parse(id.substring(8));
+    String id0 = id.substring(0, 8);
+    int d = Time.parse(id0, 'yyyyMMdd');
+    DateTime day = new DateTime.fromMicrosecondsSinceEpoch(d * 1000);
+    int id2 = day.difference(startDay).inDays;
+    id1 = id2 * 100 + id1;
+    return (id1 << 11) + intData;
   }
+
+  String toString() {
+    return data.fold('$id', (current, next) => current + ',$next');
+  }
+
+  int get intData =>
+      data.reduce((current, next) => current + (1 << (next - 1)));
+
+  set intData(int num) {
+    Set<int> d = new Set<int>();
+    for (int i = 0; i < 11; i++) {
+      if (1 & num > 0) {
+        d.add(i + 1);
+      }
+      num >>= 1;
+    }
+    data = d;
+  }
+
+  String get base64Data => base64UrlEncode([intData]).replaceAll('=', '');
 }

@@ -14,7 +14,7 @@ description: 小说更新器
 version: 1.0.0+1
 
 environment:
-  sdk: ">=2.2.0 <3.0.0"
+  sdk: ">=2.5.0 <3.0.0"
 
 dependencies:
   flutter:
@@ -26,6 +26,7 @@ dependencies:
 
   http: ^0.12.0+2
   html: ^0.14.0+2
+  quicklibs: ^1.0.8
 
 dev_dependencies:
   flutter_test:
