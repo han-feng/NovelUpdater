@@ -22,24 +22,45 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   Repository repository;
-  String _text = "";
-  AnimationController controller; //动画控制器
+  String period = "";
+  List<Suggestion> suggestions;
 
   @override
   void initState() {
-    //初始化，当当前widget被插入到树中时调用
+    // 初始化，当前widget被插入到树中时调用
     super.initState();
-    repository = new Repository(context);
-    controller =
-        AnimationController(vsync: this, duration: const Duration(seconds: 5));
-//    controller.forward(); //放在这里开启动画 ，打开页面就播放动画
+    repository = Repository(context);
+    suggestions = repository.suggestions;
   }
 
-  void _runSpider() async {
-    var data = await spider.html_parse();
+  Future<void> _handleRefresh() async {
     setState(() {
-      _text = data; // json.encode({'items':data});
+      repository.refresh();
     });
+  }
+
+  Widget buildListView(BuildContext context) {
+    return ListView.builder(
+      itemCount: suggestions.length,
+      itemBuilder: (context, index) {
+        Suggestion item = suggestions[index];
+        Icon icon;
+        Text title;
+        if (item.recommended) {
+          icon = Icon(Icons.grade,
+              size: 32, color: Colors.red, semanticLabel: "推荐");
+          title = Text("推荐参与 ${item.numbers} ${item.provinceName}");
+        } else {
+          icon = Icon(Icons.block, size: 32, semanticLabel: "不推荐");
+          title = Text("${item.numbers} ${item.provinceName}");
+        }
+        return ListTile(
+          leading: icon,
+          title: title,
+          subtitle: Text("截止到 ${item.period} 期已连续出现 ${item.count} 次"),
+        );
+      },
+    );
   }
 
   @override
@@ -57,24 +78,13 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         title: Text(widget.title),
       ),
       body: Center(
-        child: Card(
-          child: ListTile(
-            leading: Icon(Icons.grade, size: 48, color: Colors.yellow),
-            title: Text('推荐参与【2、5、8】山东'),
-            subtitle: Text('截止到 2019010101 期已连续出现 20 次'),
-          ),
+        child: RefreshIndicator(
+          // 刷新函数
+          onRefresh: _handleRefresh,
+          color: Colors.green,
+          child: buildListView(context),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _runSpider,
-        tooltip: '更新',
-        child: RotationTransition(
-          //旋转动画
-          alignment: Alignment.center,
-          turns: controller,
-          child: Icon(Icons.autorenew),
-        ),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
 }

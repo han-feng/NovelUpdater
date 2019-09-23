@@ -12,6 +12,10 @@ void main() {
     expect(find.text("推荐参与【2、5、8】山东"), findsOneWidget);
   });
 
+  test("test", () async{
+    print(10.compareTo(100));
+  });
+
   test("Item功能测试", () async {
     Item i = new Item.fromString('19010101,1,2,3,4,5');
     expect('2019010101,1,2,3,4,5', i.toString());
