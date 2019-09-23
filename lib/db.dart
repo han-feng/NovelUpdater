@@ -1,6 +1,5 @@
-import 'dart:async' show Future;
+import "dart:async";
 import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:quicklibs/quicklibs.dart';
 
@@ -8,24 +7,20 @@ class Repository {
   BuildContext context;
   Map<String, ProvinceConfig> provinces;
   Map<String, dynamic> config55128;
-  List<Suggestion> _suggestions = List<Suggestion>();
+  final List<Suggestion> suggestions = List<Suggestion>();
 
   Repository(this.context) {
-    _loadConfig();
-//    refresh();
-    _suggestions.add(Suggestion("sd", "山东", "2019010101", [2, 5, 8], 20, true));
-    _suggestions
-        .add(Suggestion("sd", "山东", "2018123199", [2, 3, 8], 10, false));
+    _loadConfig().then((config) => refresh());
   }
 
-  List<Suggestion> get suggestions {
-    return _suggestions;
-  }
-
-  void refresh() async {
+  refresh() async {
     print("刷新");
+    suggestions.add(Suggestion("sd", "2019010101", [2, 5, 8], 14));
+    suggestions.add(Suggestion("sd", "2018123199", [2, 3, 8], 10));
+    suggestions.add(Suggestion("sh", "2019123199", [1, 3, 8], 20));
+
     provinces.forEach((key, value) => {_update(key)});
-    _suggestions.sort((a, b) {
+    suggestions.sort((a, b) {
       if (a.recommended != b.recommended) {
         // 是否推荐
         return a.recommended ? -1 : 1;
@@ -34,14 +29,15 @@ class Repository {
         return b.count.compareTo(a.count);
       } else {
         // 省份名称
-        return a.provinceName.compareTo(b.provinceName);
+        return a.province.compareTo(b.province);
       }
     });
   }
 
-  _loadConfig() async {
+  Future<dynamic> _loadConfig() async {
     var configStr =
         await DefaultAssetBundle.of(context).loadString('assets/config.json');
+
     dynamic config = json.decode(configStr);
     Map<String, dynamic> ps = config['provinces'];
     provinces = ps.map((String key, dynamic value) {
@@ -49,8 +45,7 @@ class Repository {
     });
 
     config55128 = config['55128'];
-    print(provinces);
-    print(config55128);
+    return config;
   }
 
 // 从本地加载数据
@@ -71,6 +66,7 @@ class Repository {
     // 保存数据到本地
 
     // 重新计算推荐建议
+    suggestions.removeWhere((e) => e.province == province);
   }
 }
 
@@ -182,12 +178,13 @@ class Item {
 
 class Suggestion {
   String province; // 省份
-  String provinceName; // 省份名称
   String period; // 期次
   List<int> numbers; // 数字组合
   int count; // 连续出现次数
-  bool recommended; // 是否推荐
 
-  Suggestion(this.province, this.provinceName, this.period, this.numbers,
-      this.count, this.recommended);
+  Suggestion(this.province, this.period, this.numbers, this.count);
+
+  bool get recommended {
+    return (count >= 14 && count <= 21);
+  }
 }

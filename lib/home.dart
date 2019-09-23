@@ -49,10 +49,12 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         if (item.recommended) {
           icon = Icon(Icons.grade,
               size: 32, color: Colors.red, semanticLabel: "推荐");
-          title = Text("推荐参与 ${item.numbers} ${item.provinceName}");
+          title = Text(
+              "推荐参与 ${item.numbers} ${repository.provinces[item.province].name}");
         } else {
           icon = Icon(Icons.block, size: 32, semanticLabel: "不推荐");
-          title = Text("${item.numbers} ${item.provinceName}");
+          title = Text(
+              "${item.numbers} ${repository.provinces[item.province].name}");
         }
         return ListTile(
           leading: icon,
