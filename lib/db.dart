@@ -15,26 +15,27 @@ class Repository {
 
   refresh() async {
     print("刷新");
-    suggestions.add(Suggestion("sd", "2019010101", [2, 5, 8], 14));
-    suggestions.add(Suggestion("sd", "2018123199", [2, 3, 8], 10));
-    suggestions.add(Suggestion("sh", "2019123199", [1, 3, 8], 20));
 
     provinces.forEach((key, value) => {_update(key)});
+
     suggestions.sort((a, b) {
       if (a.recommended != b.recommended) {
         // 是否推荐
         return a.recommended ? -1 : 1;
       } else if (a.count != b.count) {
-        // 连续次数
+        // 连续次数，倒序
         return b.count.compareTo(a.count);
+      } else if (a.period != b.period) {
+        // 期次，倒序
+        return b.period.compareTo(a.period);
       } else {
-        // 省份名称
+        // 省份
         return a.province.compareTo(b.province);
       }
     });
   }
 
-  Future<dynamic> _loadConfig() async {
+  _loadConfig() async {
     var configStr =
         await DefaultAssetBundle.of(context).loadString('assets/config.json');
 
@@ -45,20 +46,21 @@ class Repository {
     });
 
     config55128 = config['55128'];
-    return config;
   }
 
 // 从本地加载数据
   List<Item> _loadData(String province, String date) {
     List<Item> items = List<Item>();
+    // 加载 assets 数据
+    // 加载 本地存储数据
     return items;
   }
 
 // 保存数据到本地
-  void _saveData(String province) async {}
+  _saveData(String province, List<Item> data) async {}
 
 // 检查网上数据源，更新本地数据
-  void _update(String province) async {
+  _update(String province) async {
     // 获取当前期次
     // 获取下一期次及时间
     // 确定更新数据范围
@@ -67,6 +69,9 @@ class Repository {
 
     // 重新计算推荐建议
     suggestions.removeWhere((e) => e.province == province);
+
+    suggestions.add(Suggestion(province, "2019010101", [2, 5, 8], 14));
+    suggestions.add(Suggestion(province, "2018123199", [2, 3, 8], 10));
   }
 }
 
@@ -108,7 +113,7 @@ class Item {
       num >>= 1;
     }
     String id1 = (num % 100).toString();
-    if (id1.length == 1) id1 = '0$id1';
+    id1 = id1.padLeft(2, "0");
     int id2 = num ~/ 1;
     id = Time.format(startDay.add(Duration(days: id2)), 'yyyyMMdd') + '$id1';
   }
