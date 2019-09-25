@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:novel_updater/main.dart';
-import 'package:novel_updater/db.dart';
+import 'package:novel_updater/Repository.dart';
+import 'package:novel_updater/Item.dart';
 
 void main() {
 //  testWidgets('DBUtil', (WidgetTester tester) async {

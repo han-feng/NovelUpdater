@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'spider.dart' as spider;
-import 'db.dart';
+import 'Repository.dart';
+import 'Suggestion.dart';
 
 class HomePage extends StatefulWidget {
   HomePage({Key key, this.title}) : super(key: key);
