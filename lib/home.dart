@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:novel_updater/ProvinceConfig.dart';
 import 'spider.dart' as spider;
 import 'Repository.dart';
 import 'Suggestion.dart';
@@ -30,14 +31,14 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   void initState() {
     // 初始化，当前widget被插入到树中时调用
     super.initState();
-    repository = Repository(context);
+    repository = Repository(context, () {
+      setState(() {});
+    });
     suggestions = repository.suggestions;
   }
 
   Future<void> _handleRefresh() async {
-    setState(() {
-      repository.refresh();
-    });
+    await repository.refresh();
   }
 
   Widget buildListView(BuildContext context) {
@@ -47,20 +48,31 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         Suggestion item = suggestions[index];
         Icon icon;
         Text title;
+        ProvinceConfig province = repository.provinces[item.province];
         if (item.recommended) {
           icon = Icon(Icons.grade,
-              size: 32, color: Colors.red, semanticLabel: "推荐");
-          title = Text(
-              "推荐参与 ${item.numbers} ${repository.provinces[item.province].name}");
+              size: 32, color: Colors.yellow, semanticLabel: "推荐");
+          title = Text("推荐参与 ${item.numbers} ${province.name}");
         } else {
           icon = Icon(Icons.block, size: 32, semanticLabel: "不推荐");
-          title = Text(
-              "${item.numbers} ${repository.provinces[item.province].name}");
+          title = Text("${item.numbers} ${province.name}");
         }
-        return ListTile(
-          leading: icon,
-          title: title,
-          subtitle: Text("截止到 ${item.period} 期已连续出现 ${item.count} 次"),
+        int diff = province.nextTime
+            .add(new Duration(seconds: province.duration))
+            .difference(DateTime.now())
+            .inSeconds;
+        diff = diff < 0 ? 0 : diff;
+
+        return Card(
+          child: ListTile(
+            leading: icon,
+            title: title,
+            subtitle: Text("截止到 ${item.period} 期已连续出现 ${item.count} 次"),
+            trailing: CircularProgressIndicator(
+              backgroundColor: Colors.black12,
+              value: diff >= 1200 ? 0.0 : 1.0 - diff / 1200,
+            ),
+          ),
         );
       },
     );

@@ -24,40 +24,56 @@ class Repository {
         "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36"
   };
 
+  bool refreshing = false; //防止并发刷新
+
   BuildContext context;
   Map<String, ProvinceConfig> provinces;
   Map<String, dynamic> config55128;
   Map<String, dynamic> configYdniu;
+  VoidCallback onChange;
 
-  Repository(this.context) {
+  Repository(this.context, this.onChange) {
     dio.interceptors.add(CookieManager(cookieJar));
     _loadConfig().then((config) => refresh());
   }
 
   refresh() async {
+    if (refreshing) return; //防止并发刷新
+
     print("刷新");
-
-    for (var key in provinces.keys) {
-      var result = await _update(key);
-      print(">>> $result");
-      sleep(Duration(seconds: 1));
-    }
-
-    suggestions.sort((a, b) {
-      if (a.recommended != b.recommended) {
-        // 是否推荐
-        return a.recommended ? -1 : 1;
-      } else if (a.count != b.count) {
-        // 连续次数，倒序
-        return b.count.compareTo(a.count);
-      } else if (a.period != b.period) {
-        // 期次，倒序
-        return b.period.compareTo(a.period);
-      } else {
-        // 省份
-        return a.province.compareTo(b.province);
+    refreshing = true;
+    try {
+      List<Suggestion> results = List<Suggestion>();
+      for (var key in provinces.keys) {
+        var result = await _update(key);
+        print(">>> $result");
+        results.addAll(result);
+        sleep(Duration(seconds: 1));
       }
-    });
+
+      results.sort((a, b) {
+        if (a.recommended != b.recommended) {
+          // 是否推荐
+          return a.recommended ? -1 : 1;
+        } else if (a.count != b.count) {
+          // 连续次数，倒序
+          return b.count.compareTo(a.count);
+        } else if (a.period != b.period) {
+          // 期次，倒序
+          return b.period.compareTo(a.period);
+        } else {
+          // 省份
+          return a.province.compareTo(b.province);
+        }
+      });
+
+      suggestions.clear();
+      suggestions.addAll(results);
+
+      onChange();
+    } finally {
+      refreshing = false;
+    }
   }
 
   _loadConfig() async {
@@ -104,6 +120,8 @@ class Repository {
     List<dom.Element> trs = document.querySelectorAll("#tabtrend>tbody>tr");
     //  List<ItemEntity> data = [];
     String data = "";
+    String lastNo = "";
+    String lastTime = "";
     if (trs.isNotEmpty) {
       for (int i = 0; i < trs.length; i++) {
         List<dom.Element> tds = trs[i].querySelectorAll("td");
@@ -118,33 +136,48 @@ class Repository {
 //    });
       }
     }
-    result["datas"] = data;
 
     // 获取下一期次及时间
+    DateTime now1 = DateTime.now();
     response = await dio.post(baseUrl,
         data: FormData.fromMap({"method": "GetCurrIsuse"}));
-    if (response.statusCode != 200) {
-      return null;
+    DateTime now2 = DateTime.now();
+
+    if (response.statusCode == 200) {
+      print(response.data);
+      dynamic responseData = json.decode(response.data);
+      if (responseData["success"] == true) {
+        var resp = responseData["result"];
+        ProvinceConfig provinceConfig = provinces[province];
+        provinceConfig.lastNo = lastNo;
+        provinceConfig.nextNo = resp["name"];
+        provinceConfig.nextTime = DateTime.parse(resp["end"]);
+        // 计算本地与服务端时间差
+        DateTime serverTime = DateTime.parse((resp["time"]));
+        var d1 = now1.difference(serverTime).inSeconds;
+        var d2 = now2.difference(serverTime).inSeconds;
+        provinceConfig.duration = (d1 + d2) ~/ 2;
+        print(provinceConfig);
+      }
     }
-    result["last"] = response.data;
+    result["datas"] = data;
 
     return result;
   }
 
   /// 检查网上数据源，更新本地数据
-  _update(String province) async {
+  Future<List<Suggestion>> _update(String province) async {
     // 获取当前期次
     var peroidInfo = await _getLastData(province);
-    print(peroidInfo);
-    // 获取下一期次及时间
+    // print(peroidInfo);
     // 确定更新数据范围
 
     // 保存数据到本地
 
     // 重新计算推荐建议
-    suggestions.removeWhere((e) => e.province == province);
-
-    suggestions.add(Suggestion(province, "2019010101", [2, 5, 8], 14));
-    suggestions.add(Suggestion(province, "2018123199", [2, 3, 8], 10));
+    List<Suggestion> result = new List<Suggestion>();
+    result.add(Suggestion(province, "2019010101", [2, 5, 8], 14));
+    result.add(Suggestion(province, "2018123199", [2, 3, 8], 10));
+    return result;
   }
 }
