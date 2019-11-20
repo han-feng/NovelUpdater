@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:novel_updater/ProvinceConfig.dart';
 import 'spider.dart' as spider;
@@ -26,6 +28,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   Repository repository;
   String period = "";
   List<Suggestion> suggestions;
+  Timer timer;
 
   @override
   void initState() {
@@ -35,6 +38,12 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       setState(() {});
     });
     suggestions = repository.suggestions;
+    if (timer == null) {
+      timer = Timer.periodic(Duration(seconds: 30), (as) {
+        print(">>> timer run");
+        setState(() {});
+      });
+    }
   }
 
   Future<void> _handleRefresh() async {
@@ -70,7 +79,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             subtitle: Text("截止到 ${item.period} 期已连续出现 ${item.count} 次"),
             trailing: CircularProgressIndicator(
               backgroundColor: Colors.black12,
-              value: diff >= 1200 ? 0.0 : 1.0 - diff / 1200,
+              value: diff >= 1200 ? 0.0 : 1.0 - diff / 1200, // 进度显示100%为20分钟
             ),
           ),
         );

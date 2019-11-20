@@ -101,11 +101,11 @@ class Repository {
   /// 保存数据到本地
   _saveData(String province, List<Item> data) async {}
 
-  /// 获取当前期次信息
-  Future<dynamic> _getLastData(province) async {
+  /// 获取在线数据
+  Future<dynamic> _getOnLineData(String province) async {
     String baseUrl = configYdniu['baseUrl'];
     baseUrl = baseUrl.replaceAll("\$province", province);
-    print(">>>" + baseUrl);
+//    print(">>>" + baseUrl);
 
     var response = await dio.get(baseUrl);
     if (response.statusCode != 200) {
@@ -120,8 +120,6 @@ class Repository {
     List<dom.Element> trs = document.querySelectorAll("#tabtrend>tbody>tr");
     //  List<ItemEntity> data = [];
     String data = "";
-    String lastNo = "";
-    String lastTime = "";
     if (trs.isNotEmpty) {
       for (int i = 0; i < trs.length; i++) {
         List<dom.Element> tds = trs[i].querySelectorAll("td");
@@ -136,10 +134,18 @@ class Repository {
 //    });
       }
     }
+    return result;
+  }
+
+  /// 更新下一期次信息
+  _updateNextData(String province) async {
+    String baseUrl = configYdniu['baseUrl'];
+    baseUrl = baseUrl.replaceAll("\$province", province);
+//    print(">>>" + baseUrl);
 
     // 获取下一期次及时间
     DateTime now1 = DateTime.now();
-    response = await dio.post(baseUrl,
+    var response = await dio.post(baseUrl,
         data: FormData.fromMap({"method": "GetCurrIsuse"}));
     DateTime now2 = DateTime.now();
 
@@ -149,28 +155,33 @@ class Repository {
       if (responseData["success"] == true) {
         var resp = responseData["result"];
         ProvinceConfig provinceConfig = provinces[province];
-        provinceConfig.lastNo = lastNo;
+//        provinceConfig.lastNo = lastNo;
         provinceConfig.nextNo = resp["name"];
-        provinceConfig.nextTime = DateTime.parse(resp["end"]);
         // 计算本地与服务端时间差
         DateTime serverTime = DateTime.parse((resp["time"]));
         var d1 = now1.difference(serverTime).inSeconds;
         var d2 = now2.difference(serverTime).inSeconds;
         provinceConfig.duration = (d1 + d2) ~/ 2;
+        // 转换为本地时间
+
+        provinceConfig.nextTime = DateTime.parse(resp["end"])
+            .add(Duration(seconds: provinceConfig.duration));
         print(provinceConfig);
       }
     }
-    result["datas"] = data;
-
-    return result;
   }
 
   /// 检查网上数据源，更新本地数据
   Future<List<Suggestion>> _update(String province) async {
-    // 获取当前期次
-    var peroidInfo = await _getLastData(province);
-    // print(peroidInfo);
+    // 更新下一期次信息
+    await _updateNextData(province);
     // 确定更新数据范围
+    // 存在一种可能，当前期次正在开奖，暂时没有数据，下一期次已经开始投注
+    // 1) 获取最新期次编号
+    // 2) 获取本地最后更新期次编号
+    // 3) 补充在线数据（Ydniu）
+    // 4) 补充历史数据
+
 
     // 保存数据到本地
 

@@ -4,6 +4,7 @@ class ProvinceConfig {
 
   String lastNo = '';
   String nextNo = '';
+  DateTime lastTime;
   DateTime nextTime;
 
   int duration; // 本地与服务器时间差，单位：秒，=本地时间-服务器时间
@@ -20,7 +21,7 @@ class ProvinceConfig {
       };
 
   String toString() {
-    return '{name:"$name",55128:"$url55128",lastNo:"$lastNo",'
+    return '{name:"$name",55128:"$url55128",lastNo:"$lastNo",lastTime:"$lastTime"'
         'nextNo:"$nextNo",nextTime:"$nextTime",duration:"$duration"}';
   }
 }
