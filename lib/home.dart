@@ -34,9 +34,10 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   void initState() {
     // 初始化，当前widget被插入到树中时调用
     super.initState();
-    repository = Repository(context, () {
+    repository = Repository(this.context, () {
       setState(() {});
     });
+    repository.refresh();
     suggestions = repository.suggestions;
     if (timer == null) {
       timer = Timer.periodic(Duration(seconds: 30), (as) {

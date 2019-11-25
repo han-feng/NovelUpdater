@@ -12,10 +12,10 @@ void main() {
 //  });
 
   test("Item功能测试", () async {
-    Item i = new Item.fromString('19010101,1,2,3,4,5');
+    Item i = new Item.fromString('19010101,1,  2 ,  3,4 ,5');
     expect('2019010101,1,2,3,4,5', i.toString());
 
-    i = new Item.fromString('19010101,01,02,3,04,5');
+    i = new Item.fromString('19010101,01, 02 ,3, 04,5');
     expect('2019010101,1,2,3,4,5', i.toString());
     expect(74754079, i.toInt());
     expect('Hw', i.base64Data);

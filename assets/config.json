@@ -32,6 +32,7 @@
     "defaultStartDate": "20180101"
   },
   "ydniu": {
-    "baseUrl": "https://chart.ydniu.com/trend/syx5$province/"
+    "baseUrl": "https://chart.ydniu.com/trend/syx5$province/",
+    "mobileBaseUrl": "https://m.chart.ydniu.com/trend/syx5$province/"
   }
 }

@@ -25,7 +25,7 @@ class Item {
   }
 
   Item.fromString(String str) {
-    List<String> d = str.split(',').map((s) => _trimLeft0(s)).toList();
+    List<String> d = str.split(',');
     id = d[0];
     if (id.length == 8)
       id = '20' + id;
@@ -35,13 +35,13 @@ class Item {
     data = d.sublist(1).map((s) => int.parse(s)).toSet();
   }
 
-  static String _trimLeft0(String str) {
-    str = str.trim();
-    while (str.startsWith('0')) {
-      str = str.substring(1);
-    }
-    return str;
-  }
+//  static String _trimLeft0(String str) {
+//    str = str.trim();
+//    while (str.startsWith('0')) {
+//      str = str.substring(1);
+//    }
+//    return str;
+//  }
 
   bool contains(var i) {
     if (i is String) {
