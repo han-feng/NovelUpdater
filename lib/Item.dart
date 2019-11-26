@@ -25,7 +25,7 @@ class Item {
   }
 
   Item.fromString(String str) {
-    List<String> d = str.split(',');
+    List<String> d = str.split(new RegExp(r"(,|\s)+"));
     id = d[0];
     if (id.length == 8)
       id = '20' + id;

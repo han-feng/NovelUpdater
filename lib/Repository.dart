@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter/services.dart';
 
 import 'package:dio/dio.dart';
@@ -40,7 +39,6 @@ class Repository {
 
   Repository(this.context, this.onChange) {
     dio.interceptors.add(CookieManager(cookieJar));
-//    _loadConfig().then((config) => refresh());
   }
 
   _init() async {
@@ -158,7 +156,7 @@ class Repository {
   }
 
   /// 获取在线数据
-  Future<dynamic> _getOnLineData2(String province) async {
+  Future<dynamic> _updateOnLineData2(String province) async {
     // AJAX 方式
     String baseUrl = configYdniu['mobileBaseUrl'];
     baseUrl = baseUrl.replaceAll("\$province", province);
@@ -171,21 +169,31 @@ class Repository {
       dynamic responseData = json.decode(response.data);
       if (responseData["success"] == true) {
         var resp = responseData["result"];
-        print(resp["issue"]);
+        print(resp["body"]);
+        // 解析期次列表
         dom.Document document = parse("<table>" + resp["issue"] + "<\/table>");
-        // 解析最新数据
         List<dom.Element> trs = document.querySelectorAll("td");
-        int max = int.parse(trs.last.text);
+        final int max = int.parse(trs.last.text);
         print(">>>>>> $max");
-        var i = max, v;
-        // TODO 完成onlineCached填充逻辑
+        // 初始化缓存对象
         List<Item> items = onlineCached.putIfAbsent(province, () {
-          return List<Item>(max);
+          var list = List<Item>();
+          list.length = max;
+          return list;
         });
         if (items.length < max) {
           items.length = max;
         }
+        // 解析数据内容
+        document = parse("<table>" + resp["body"] + "<\/table>");
+        List<dom.Element> bodys =
+            document.querySelectorAll("td.td_c_blue").reversed;
+//        for(var e in bodys){
+//          print(e.text);
+//        }
+        // 加载数据到缓存
         final String prefix = Time.format(DateTime.now(), "yyyyMMdd");
+        var i = max, v;
         for (var element in trs.reversed) {
           if (i <= 0) break;
           v = int.parse(element.text);
@@ -193,11 +201,18 @@ class Repository {
             print("ERROR: >>>>>>>> $v != $i");
           }
           if (items[i - 1] == null) {
+            // 仅处理缺失数据，不更新已有数据
             var id = i.toString().padLeft(2, "0");
-            items[i - 1] = Item("$prefix$id", {1, 2, 3});
+            // TODO 补充数据
+            var data = bodys[max - i].text;
+            print(data);
+            items[i - 1] = Item.fromString("$prefix$id $data");
           }
           i--;
         }
+        ProvinceConfig provinceConfig = provinces[province];
+        provinceConfig.lastNo = "$prefix${max.toString().padLeft(2, '0')}";
+        provinceConfig.lastTime = DateTime.now();
       }
     }
   }
@@ -241,8 +256,8 @@ class Repository {
     await _updateNextData(province);
     // 确定更新数据范围
     // 存在一种可能，当前期次正在开奖，暂时没有数据，下一期次已经开始投注
-    // 1) 获取最新期次编号
-    await _getOnLineData2(province);
+    // 1) 更新在线数据，获取最新期次编号
+    await _updateOnLineData2(province);
     // 2) 获取本地最后更新期次编号
     // 3) 补充在线数据（Ydniu）
     // 4) 补充历史数据
