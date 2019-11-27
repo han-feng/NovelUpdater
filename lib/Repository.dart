@@ -89,14 +89,18 @@ class Repository {
     }
   }
 
-  _loadConfig() async {
+  Future<String> _loadString(String assetKey) async {
     AssetBundle bundle;
     if (context != null) {
       bundle = DefaultAssetBundle.of(context);
     } else {
       bundle = rootBundle;
     }
-    var configStr = await bundle.loadString('assets/config.json');
+    return await bundle.loadString(assetKey);
+  }
+
+  _loadConfig() async {
+    var configStr = await _loadString('assets/config.json');
 
     dynamic config = json.decode(configStr);
     Map<String, dynamic> ps = config['provinces'];
@@ -119,53 +123,52 @@ class Repository {
   /// 保存数据到本地
   _saveData(String province, List<Item> data) async {}
 
-  /// 获取在线数据
-  Future<dynamic> _getOnLineData(String province) async {
-    String baseUrl = configYdniu['baseUrl'];
-    baseUrl = baseUrl.replaceAll("\$province", province);
-//    print(">>>" + baseUrl);
+//  /// 获取在线数据
+//  Future<dynamic> _getOnLineData(String province) async {
+//    String baseUrl = configYdniu['baseUrl'];
+//    baseUrl = baseUrl.replaceAll("\$province", province);
+////    print(">>>" + baseUrl);
+//
+//    var response = await dio.get(baseUrl);
+//    if (response.statusCode != 200) {
+//      return null;
+//    }
+////    print(cookieJar.loadForRequest(Uri.parse(baseUrl)));
+//
+//    var result = {};
+//
+//    dom.Document document = parse(response.data);
+//    // 解析最新数据
+//    List<dom.Element> trs = document.querySelectorAll("#tabtrend>tbody>tr");
+//    //  List<ItemEntity> data = [];
+//    String data = "";
+//    if (trs.isNotEmpty) {
+//      for (int i = 0; i < trs.length; i++) {
+//        List<dom.Element> tds = trs[i].querySelectorAll("td");
+//        for (int j = 0; j < min(tds.length, 6); j++) {
+//          data += tds[j].text + ", ";
+//        }
+//        data += "\n";
+////    data = List.generate(images.length, (i){
+////      return ItemEntity(
+////          title: images[i].attributes['alt'],
+////          imgUrl: images[i].attributes['data-original']);
+////    });
+//      }
+//    }
+//    return result;
+//  }
 
-    var response = await dio.get(baseUrl);
-    if (response.statusCode != 200) {
-      return null;
-    }
-//    print(cookieJar.loadForRequest(Uri.parse(baseUrl)));
-
-    var result = {};
-
-    dom.Document document = parse(response.data);
-    // 解析最新数据
-    List<dom.Element> trs = document.querySelectorAll("#tabtrend>tbody>tr");
-    //  List<ItemEntity> data = [];
-    String data = "";
-    if (trs.isNotEmpty) {
-      for (int i = 0; i < trs.length; i++) {
-        List<dom.Element> tds = trs[i].querySelectorAll("td");
-        for (int j = 0; j < min(tds.length, 6); j++) {
-          data += tds[j].text + ", ";
-        }
-        data += "\n";
-//    data = List.generate(images.length, (i){
-//      return ItemEntity(
-//          title: images[i].attributes['alt'],
-//          imgUrl: images[i].attributes['data-original']);
-//    });
-      }
-    }
-    return result;
-  }
-
-  /// 获取在线数据
-  Future<dynamic> _updateOnLineData2(String province) async {
+  /// 更新在线数据
+  _updateOnLineData(String province, [int fetchCount = 25]) async {
     // AJAX 方式
     String baseUrl = configYdniu['mobileBaseUrl'];
     baseUrl = baseUrl.replaceAll("\$province", province);
 
     var response = await dio.post(baseUrl,
         data: FormData.fromMap(
-            {"method": "CheckUpdate", "qs": "25"})); // index : 0
+            {"method": "CheckUpdate", "qs": "$fetchCount"})); // index : 0
     if (response.statusCode == 200) {
-//      print(response.data);
       dynamic responseData = json.decode(response.data);
       if (responseData["success"] == true) {
         var resp = responseData["result"];
@@ -186,11 +189,8 @@ class Repository {
         }
         // 解析数据内容
         document = parse("<table>" + resp["body"] + "<\/table>");
-        List<dom.Element> bodys =
-            document.querySelectorAll("td.td_c_blue").reversed;
-//        for(var e in bodys){
-//          print(e.text);
-//        }
+        List<dom.Element> bodys = document.querySelectorAll("td.td_c_blue");
+        bodys = bodys.reversed.toList();
         // 加载数据到缓存
         final String prefix = Time.format(DateTime.now(), "yyyyMMdd");
         var i = max, v;
@@ -203,16 +203,23 @@ class Repository {
           if (items[i - 1] == null) {
             // 仅处理缺失数据，不更新已有数据
             var id = i.toString().padLeft(2, "0");
-            // TODO 补充数据
             var data = bodys[max - i].text;
-            print(data);
             items[i - 1] = Item.fromString("$prefix$id $data");
+          } else {
+            // 数据校验，逻辑稳定后去掉
+            var id = i.toString().padLeft(2, "0");
+            var data = bodys[max - i].text;
+            var i1 = items[i - 1].toString();
+            var i2 = Item.fromString("$prefix$id $data").toString();
+            if (i1 != i2) {
+              print("ERROR: >>>>>>>> $i1 != $i2");
+            }
           }
           i--;
         }
-        ProvinceConfig provinceConfig = provinces[province];
-        provinceConfig.lastNo = "$prefix${max.toString().padLeft(2, '0')}";
-        provinceConfig.lastTime = DateTime.now();
+//        ProvinceConfig provinceConfig = provinces[province];
+//        provinceConfig.lastNo = "$prefix${max.toString().padLeft(2, '0')}";
+//        provinceConfig.lastTime = DateTime.now();
       }
     }
   }
@@ -221,7 +228,6 @@ class Repository {
   _updateNextData(String province) async {
     String baseUrl = configYdniu['baseUrl'];
     baseUrl = baseUrl.replaceAll("\$province", province);
-//    print(">>>" + baseUrl);
 
     // 获取下一期次及时间
     DateTime now1 = DateTime.now();
@@ -235,7 +241,6 @@ class Repository {
       if (responseData["success"] == true) {
         var resp = responseData["result"];
         ProvinceConfig provinceConfig = provinces[province];
-//        provinceConfig.lastNo = lastNo;
         provinceConfig.nextNo = resp["name"];
         // 计算本地与服务端时间差
         DateTime serverTime = DateTime.parse((resp["time"]));
@@ -250,20 +255,34 @@ class Repository {
     }
   }
 
+  /// 获取本地存储的最后更新数据编号
+  Future<String> _getLocalUpdateNo(String province) async {
+    // 获取本地存储的最后更新期次编号
+    // TODO 未完成
+    // 如果找不到本地存储信息，改为获取内嵌资源最后更新期次编号
+    // 先获取内嵌资源最后更新日期
+    var lastUpdatedStr = await _loadString('assets/data/lastupdated.dat');
+    print(lastUpdatedStr);
+    // TODO 未完成
+    return "";
+  }
+
   /// 检查网上数据源，更新本地数据
   Future<List<Suggestion>> _update(String province) async {
     // 更新下一期次信息
     await _updateNextData(province);
     // 确定更新数据范围
     // 存在一种可能，当前期次正在开奖，暂时没有数据，下一期次已经开始投注
-    // 1) 更新在线数据，获取最新期次编号
-    await _updateOnLineData2(province);
-    // 2) 获取本地最后更新期次编号
-    // 3) 补充在线数据（Ydniu）
-    // 4) 补充历史数据
-
+    // 更新在线数据，获取最新期次编号
+    await _updateOnLineData(province);
+    // 获取本地最后更新期次编号
+    await _getLocalUpdateNo(province);
+    // 补充在线数据（Ydniu）
+    // TODO 未完成
+    // 补充历史数据
+    // TODO 未完成
     // 保存数据到本地
-
+    // TODO 未完成
     // 重新计算推荐建议
     List<Suggestion> result = new List<Suggestion>();
     result.add(Suggestion(province, "2019010101", [2, 5, 8], 14));
