@@ -1,8 +1,11 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:dio/dio.dart';
 import 'package:dio_cookie_manager/dio_cookie_manager.dart';
@@ -227,7 +230,7 @@ class Repository {
   /// 更新下一期次信息
   _updateNextData(String province) async {
     String baseUrl = configYdniu['baseUrl'];
-    baseUrl = baseUrl.replaceAll("\$province", province);
+    baseUrl = baseUrl.replaceAll(r"$province", province);
 
     // 获取下一期次及时间
     DateTime now1 = DateTime.now();
@@ -258,12 +261,19 @@ class Repository {
   /// 获取本地存储的最后更新数据编号
   Future<String> _getLocalUpdateNo(String province) async {
     // 获取本地存储的最后更新期次编号
-    // TODO 未完成
-    // 如果找不到本地存储信息，改为获取内嵌资源最后更新期次编号
-    // 先获取内嵌资源最后更新日期
-    var lastUpdatedStr = await _loadString('assets/data/lastupdated.dat');
-    print(lastUpdatedStr);
-    // TODO 未完成
+    // 先获取本地资源最后更新日期
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    print("[Prefs] >>> ${prefs.getKeys()}");
+    var lastUpdatedStr = prefs.getString("$province.lastupdated");
+    if (lastUpdatedStr != null) {
+    } else {
+      // 如果找不到本地存储信息，改为获取内嵌资源最后更新期次编号
+      prefs.getStringList("$province-$lastUpdatedStr");
+      // 先获取内嵌资源最后更新日期
+      lastUpdatedStr = await _loadString('assets/data/lastupdated.dat');
+      print(lastUpdatedStr);
+      // TODO 未完成
+    }
     return "";
   }
 
