@@ -123,8 +123,11 @@ class Repository {
     return items;
   }
 
-  /// 保存数据到本地
-  _saveData(String province, List<Item> data) async {}
+  /// 保存历史数据到本地
+  _savePastData(String province, DateTime date, List<Item> data) async {
+    // 保存数据
+    // 更新缓存
+  }
 
 //  /// 获取在线数据
 //  Future<dynamic> _getOnLineData(String province) async {
@@ -175,7 +178,7 @@ class Repository {
       dynamic responseData = json.decode(response.data);
       if (responseData["success"] == true) {
         var resp = responseData["result"];
-        print(resp["body"]);
+//        print(resp["body"]);
         // 解析期次列表
         dom.Document document = parse("<table>" + resp["issue"] + "<\/table>");
         List<dom.Element> trs = document.querySelectorAll("td");
@@ -239,7 +242,7 @@ class Repository {
     DateTime now2 = DateTime.now();
 
     if (response.statusCode == 200) {
-//      print(response.data);
+      print(response.data);
       dynamic responseData = json.decode(response.data);
       if (responseData["success"] == true) {
         var resp = responseData["result"];
@@ -301,6 +304,33 @@ class Repository {
     return lastUpdateNo;
   }
 
+  /// 获取历史数据
+  Future<List<Item>> _getPastData(String province, DateTime date) async {
+    var baseUrl = config55128["baseUrl"] +
+        provinces[province].url55128 +
+        "?searchTime=" +
+        Time.format(date, "yyyy-MM-dd");
+    print("[PastUrl] $baseUrl");
+    var response = await dio.get(baseUrl);
+    List<Item> datas = List<Item>();
+    if (response.statusCode == 200) {
+      dom.Document document = parse(response.data);
+      var trs = document.querySelectorAll("#chartData>tr");
+      for (var element in trs) {
+        var tds = element.querySelectorAll("td");
+        if (tds.length < 6) {
+          continue;
+        }
+        String value = "";
+        for (var i = 0; i < 6; i++) {
+          value += tds[i].text + " ";
+        }
+        datas.add(Item.fromString(value.trim()));
+      }
+    }
+    return datas;
+  }
+
   /// 检查网上数据源，更新本地数据
   Future<List<Suggestion>> _update(String province) async {
     // 更新下一期次信息
@@ -312,11 +342,20 @@ class Repository {
     // 获取本地最后更新期次编号
     var lastNo = await _getLocalUpdateNo(province);
     print("lastNo = $lastNo ; now = ${Time.format(DateTime.now(), 'yyMMdd')}");
-    if (lastNo.substring(0, 6) != Time.format(DateTime.now(), "yyMMdd")) {
+    var lastDate = "20" + lastNo.substring(0, 6);
+    var now = DateTime.now();
+    if (lastDate != Time.format(now, "yyyyMMdd")) {
       // 补充历史数据
-      // TODO 未完成
-      // 保存历史数据到本地
-      // TODO 未完成
+      var startDate = DateTime.parse(lastDate);
+      var days = now.difference(startDate).inDays;
+      for (var i = 0; i < days; i++) {
+        var date = startDate.add(Duration(days: i));
+        var datas = await _getPastData(province, date);
+        print("[$province.pastData] $datas");
+        // 保存历史数据到本地
+        await _savePastData(province, date, datas);
+        // TODO 设置本地数据最后更新记录
+      }
     }
     var onlineData = onlineCached[province];
     if (onlineData.any((element) => (element == null))) {
