@@ -258,23 +258,47 @@ class Repository {
     }
   }
 
+  Future<Map<String, List<String>>> _loadMap(String input) async {
+    var lines = input.split(RegExp(r"(\r|\n)+"));
+    Map<String, List<String>> output;
+    if (lines.length > 0) {
+      output = Map<String, List<String>>();
+      for (var line in lines) {
+        var data = line.split(RegExp(r"(,|\s)+"));
+        output[data[0]] = data.sublist(1);
+      }
+    }
+    return output;
+  }
+
   /// 获取本地存储的最后更新数据编号
   Future<String> _getLocalUpdateNo(String province) async {
     // 获取本地存储的最后更新期次编号
     // 先获取本地资源最后更新日期
     SharedPreferences prefs = await SharedPreferences.getInstance();
     print("[Prefs] >>> ${prefs.getKeys()}");
-    var lastUpdatedStr = prefs.getString("$province.lastupdated");
-    if (lastUpdatedStr != null) {
+    var lastUpdatedDate = prefs.getString("$province.lastupdated");
+    var lastUpdateNo;
+    if (lastUpdatedDate != null) {
+      List<String> datas = prefs.getStringList("$province-$lastUpdatedDate");
+      // TODO 加载数据到缓存中
+      lastUpdateNo = datas.last.split(RegExp(r"(,|\s)+"))[0];
     } else {
       // 如果找不到本地存储信息，改为获取内嵌资源最后更新期次编号
-      prefs.getStringList("$province-$lastUpdatedStr");
       // 先获取内嵌资源最后更新日期
-      lastUpdatedStr = await _loadString('assets/data/lastupdated.dat');
-      print(lastUpdatedStr);
-      // TODO 未完成
+      var lastUpdatedStr = await _loadString('assets/data/lastupdated.dat');
+      var map = await _loadMap(lastUpdatedStr);
+      var list = map[province];
+      lastUpdatedDate = list[0];
+      print(lastUpdatedDate);
+      lastUpdatedStr = await _loadString(
+          'assets/data/$province${lastUpdatedDate.substring(0, 6)}.txt');
+      List<String> datas = lastUpdatedStr.trim().split(RegExp(r"(\r|\n)+"));
+      // TODO 加载数据到缓存中
+      print(datas.last);
+      lastUpdateNo = datas.last.split(RegExp(r"(,|\s)+"))[0];
     }
-    return "";
+    return lastUpdateNo;
   }
 
   /// 检查网上数据源，更新本地数据
@@ -286,12 +310,29 @@ class Repository {
     // 更新在线数据，获取最新期次编号
     await _updateOnLineData(province);
     // 获取本地最后更新期次编号
-    await _getLocalUpdateNo(province);
-    // 补充在线数据（Ydniu）
-    // TODO 未完成
-    // 补充历史数据
-    // TODO 未完成
-    // 保存数据到本地
+    var lastNo = await _getLocalUpdateNo(province);
+    print("lastNo = $lastNo ; now = ${Time.format(DateTime.now(), 'yyMMdd')}");
+    if (lastNo.substring(0, 6) != Time.format(DateTime.now(), "yyMMdd")) {
+      // 补充历史数据
+      // TODO 未完成
+      // 保存历史数据到本地
+      // TODO 未完成
+    }
+    var onlineData = onlineCached[province];
+    if (onlineData.any((element) => (element == null))) {
+      // 补充在线数据（Ydniu）
+      var len = onlineData.length;
+      if (len < 25)
+        len = 25;
+      else if (len < 50)
+        len = 50;
+      else if (len < 100)
+        len = 100;
+      else
+        len = 200;
+      await _updateOnLineData(province, len);
+    }
+    // 保存在线数据到本地
     // TODO 未完成
     // 重新计算推荐建议
     List<Suggestion> result = new List<Suggestion>();
