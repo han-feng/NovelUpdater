@@ -99,7 +99,11 @@ class Repository {
     } else {
       bundle = rootBundle;
     }
-    return await bundle.loadString(assetKey);
+    try {
+      return await bundle.loadString(assetKey);
+    } catch (Error) {
+      return null;
+    }
   }
 
   _loadConfig() async {
@@ -357,11 +361,70 @@ class Repository {
     }
     print("[$province.Suggestion.init] $suggestions");
     // 遍历统计在线数据
-    for (int i = max - 1; i >= 0; i--) {}
-
     List<Suggestion> result = new List<Suggestion>();
-    result.add(Suggestion(province, "2019010101", [2, 5, 8], 14));
-    result.add(Suggestion(province, "2018123199", [2, 3, 8], 10));
+    for (int i = max - 2; i >= 0; i--) {
+      item = onlineData[i];
+      int len = suggestions.length;
+      for (int j = len - 1; j >= 0; j--) {
+        var suggestion = suggestions[j];
+        if (item.difference(suggestion.numbers) > 0) {
+          suggestion.count++;
+        } else {
+          result.add(suggestion);
+          suggestions.removeAt(j);
+        }
+      }
+    }
+    var date = DateTime.now().add(Duration(days: -1));
+    if (suggestions.isNotEmpty) {
+      // 遍历历史数据
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      while (true) {
+        var dateStr = Time.format(date, "yyyyMMdd");
+        List<String> datas = prefs.getStringList("$province-$dateStr");
+        if (datas == null || datas.isEmpty) break; // 退出条件
+        for (var data in datas.reversed) {
+          item = Item.fromString(data);
+          int len = suggestions.length;
+          for (int j = len - 1; j >= 0; j--) {
+            var suggestion = suggestions[j];
+            if (item.difference(suggestion.numbers) > 0) {
+              suggestion.count++;
+            } else {
+              result.add(suggestion);
+              suggestions.removeAt(j);
+            }
+          }
+        }
+        date = date.add(Duration(days: -1)); // 向前查找
+      }
+    }
+    if (suggestions.isNotEmpty) {
+      // 遍历内嵌资源数据
+      while (true) {
+        var dateStr = Time.format(date, "yyyyMM");
+        var dataTxt = await _loadString("assets/data/$province$dateStr.txt");
+        if (dataTxt == null || dataTxt.trim().isEmpty) break; // 退出条件
+        List<String> datas = dataTxt.split(RegExp(r"(\r|\n)+"));
+        for (var data in datas.reversed) {
+          item = Item.fromString(data);
+          int len = suggestions.length;
+          for (int j = len - 1; j >= 0; j--) {
+            var suggestion = suggestions[j];
+            if (item.difference(suggestion.numbers) > 0) {
+              suggestion.count++;
+            } else {
+              result.add(suggestion);
+              suggestions.removeAt(j);
+            }
+          }
+        }
+        date = date.add(Duration(days: -1)); // 向前查找
+      }
+    }
+    result.addAll(suggestions);
+//    result.add(Suggestion(province, "2019010101", [2, 5, 8], 14));
+//    result.add(Suggestion(province, "2018123199", [2, 3, 8], 10));
     return result;
   }
 

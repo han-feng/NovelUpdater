@@ -50,9 +50,9 @@ class Item {
     return data.contains(i);
   }
 
-  int difference(Set set) {
+  int difference(Iterable iterable) {
     int count = 0;
-    set.forEach((i) => {if (contains(i)) count++});
+    iterable.forEach((i) => {if (contains(i)) count++});
     return count;
   }
 
