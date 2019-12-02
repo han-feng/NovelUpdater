@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_icons/flutter_icons.dart';
 import 'package:novel_updater/ProvinceConfig.dart';
 import 'spider.dart' as spider;
 import 'Repository.dart';
@@ -60,11 +61,11 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         Text title;
         ProvinceConfig province = repository.provinces[item.province];
         if (item.recommended) {
-          icon = Icon(Icons.grade,
-              size: 32, color: Colors.yellow, semanticLabel: "推荐");
+          icon =
+              Icon(AntDesign.like1, color: Colors.yellow, semanticLabel: "推荐");
           title = Text("推荐参与 ${item.numbers} ${province.name}");
         } else {
-          icon = Icon(Icons.block, size: 32, semanticLabel: "不推荐");
+          icon = Icon(Icons.block, semanticLabel: "不推荐");
           title = Text("${item.numbers} ${province.name}");
         }
         int diff = province.nextTime

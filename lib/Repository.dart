@@ -126,6 +126,11 @@ class Repository {
   /// 保存历史数据到本地
   _savePastData(String province, DateTime date, List<Item> data) async {
     // 保存数据
+    var lastUpdatedDate = Time.format(date, "yyyyMMdd");
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    prefs.setStringList("$province-$lastUpdatedDate",
+        data.map((item) => item.toString()).toList());
+    prefs.setString("$province.lastupdated", lastUpdatedDate);
     // 更新缓存
   }
 
@@ -331,6 +336,14 @@ class Repository {
     return datas;
   }
 
+  /// 推荐；在数据更新后执行
+  Future<List<Suggestion>> suggest(String province) async {
+    List<Suggestion> result = new List<Suggestion>();
+    result.add(Suggestion(province, "2019010101", [2, 5, 8], 14));
+    result.add(Suggestion(province, "2018123199", [2, 3, 8], 10));
+    return result;
+  }
+
   /// 检查网上数据源，更新本地数据
   Future<List<Suggestion>> _update(String province) async {
     // 更新下一期次信息
@@ -372,11 +385,8 @@ class Repository {
       await _updateOnLineData(province, len);
     }
     // 保存在线数据到本地
-    // TODO 未完成
+    await _savePastData(province, DateTime.now(), onlineData);
     // 重新计算推荐建议
-    List<Suggestion> result = new List<Suggestion>();
-    result.add(Suggestion(province, "2019010101", [2, 5, 8], 14));
-    result.add(Suggestion(province, "2018123199", [2, 3, 8], 10));
-    return result;
+    return await suggest(province);
   }
 }
