@@ -1,4 +1,3 @@
-
 class Suggestion {
   String province; // 省份
   String period; // 期次
@@ -9,5 +8,9 @@ class Suggestion {
 
   bool get recommended {
     return (count >= 14 && count <= 21);
+  }
+
+  String toString() {
+    return "$province-$period: $numbers [$count]";
   }
 }

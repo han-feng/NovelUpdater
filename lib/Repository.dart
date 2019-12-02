@@ -338,6 +338,27 @@ class Repository {
 
   /// 推荐；在数据更新后执行
   Future<List<Suggestion>> suggest(String province) async {
+    var onlineData = onlineCached[province];
+    // TODO 推荐算法
+    final int max = onlineData.length;
+    Item item = onlineData[max - 1];
+    print("[$province.LastData] ${item.toString()}");
+    // 形成评价组合
+    var data = item.data.toList();
+    data.sort((a, b) => a - b);
+    List<Suggestion> suggestions = new List<Suggestion>();
+    for (int i = 0; i < 5; i++) {
+      for (int j = i + 1; j < 5; j++) {
+        for (int k = j + 1; k < 5; k++) {
+          suggestions.add(
+              Suggestion(province, item.id, [data[i], data[j], data[k]], 1));
+        }
+      }
+    }
+    print("[$province.Suggestion.init] $suggestions");
+    // 遍历统计在线数据
+    for (int i = max - 1; i >= 0; i--) {}
+
     List<Suggestion> result = new List<Suggestion>();
     result.add(Suggestion(province, "2019010101", [2, 5, 8], 14));
     result.add(Suggestion(province, "2018123199", [2, 3, 8], 10));
