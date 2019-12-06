@@ -423,8 +423,6 @@ class Repository {
       }
     }
     result.addAll(suggestions);
-//    result.add(Suggestion(province, "2019010101", [2, 5, 8], 14));
-//    result.add(Suggestion(province, "2018123199", [2, 3, 8], 10));
     return result;
   }
 
