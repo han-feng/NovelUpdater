@@ -187,12 +187,23 @@ class Repository {
       dynamic responseData = json.decode(response.data);
       if (responseData["success"] == true) {
         var resp = responseData["result"];
-//        print(resp["body"]);
+//        print(resp);
         // 解析期次列表
         dom.Document document = parse("<table>" + resp["issue"] + "<\/table>");
         List<dom.Element> trs = document.querySelectorAll("td");
-        final int max = int.parse(trs.last.text);
-        print(">>>>>> $max");
+        final int max = int.parse(trs.last.text); // 最新的期次编号（100以内）
+        print("[$province.maxNo] $max");
+        // 异常情况一：当日尚未开奖，获得的max为昨日最大期次号。判断方法：下一期次号是当日，且后两位小于max
+        ProvinceConfig provinceConfig = provinces[province];
+        var nextNo = provinceConfig.nextNo;
+        print("[$province.nextNo] $nextNo");
+        if (nextNo.substring(0, 8) == Time.format(DateTime.now(), "yyyyMMdd")) {
+          var no = int.parse(nextNo.substring(8)); print(">>>>>>>>>>>> $no $max");
+          if (no < max) {
+            print("[ERROR 203][$province] $no < $max");
+            return;
+          }
+        }
         // 初始化缓存对象
         List<Item> items = onlineCached.putIfAbsent(province, () {
           var list = List<Item>();
@@ -213,7 +224,7 @@ class Repository {
           if (i <= 0) break;
           v = int.parse(element.text);
           if (v != i) {
-            print("ERROR: >>>>>>>> $v != $i");
+            print("[ERROR 227][$province] $v != $i");
           }
           if (items[i - 1] == null) {
             // 仅处理缺失数据，不更新已有数据
@@ -227,7 +238,7 @@ class Repository {
             var i1 = items[i - 1].toString();
             var i2 = Item.fromString("$prefix$id $data").toString();
             if (i1 != i2) {
-              print("ERROR: >>>>>>>> $i1 != $i2");
+              print("[ERROR 241][$province] $i1 != $i2");
             }
           }
           i--;
@@ -407,6 +418,7 @@ class Repository {
         if (dataTxt == null || dataTxt.trim().isEmpty) break; // 退出条件
         List<String> datas = dataTxt.split(RegExp(r"(\r|\n)+"));
         for (var data in datas.reversed) {
+          if (data.isEmpty) continue;
           item = Item.fromString(data);
           int len = suggestions.length;
           for (int j = len - 1; j >= 0; j--) {
