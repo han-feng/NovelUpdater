@@ -129,6 +129,7 @@ class Repository {
 
   /// 保存历史数据到本地
   _savePastData(String province, DateTime date, List<Item> data) async {
+    if (data.isEmpty) return;
     // 保存数据
     var lastUpdatedDate = Time.format(date, "yyyyMMdd");
     SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -198,9 +199,12 @@ class Repository {
         var nextNo = provinceConfig.nextNo;
         print("[$province.nextNo] $nextNo");
         if (nextNo.substring(0, 8) == Time.format(DateTime.now(), "yyyyMMdd")) {
-          var no = int.parse(nextNo.substring(8)); print(">>>>>>>>>>>> $no $max");
+          var no = int.parse(nextNo.substring(8));
+          print(">>>>>>>>>>>> $no $max");
           if (no < max) {
-            print("[ERROR 203][$province] $no < $max");
+            print("[ERROR 204][$province] $no < $max");
+            // 初始化缓存对象
+            onlineCached.putIfAbsent(province, () => List<Item>());
             return;
           }
         }
@@ -354,9 +358,27 @@ class Repository {
   /// 推荐；在数据更新后执行
   Future<List<Suggestion>> suggest(String province) async {
     var onlineData = onlineCached[province];
-    // TODO 推荐算法
     final int max = onlineData.length;
-    Item item = onlineData[max - 1];
+    Item item;
+    if (max > 0) {
+      item = onlineData[max - 1];
+    } else {
+      // TODO 取历史数据最后一条
+      var date = DateTime.now().add(Duration(days: -1));
+      var dateStr = Time.format(date, "yyyyMMdd");
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      List<String> datas = prefs.getStringList("$province-$dateStr");
+      if (datas.isEmpty) {
+        var dataTxt = await _loadString("assets/data/$province$dateStr.txt");
+        datas = dataTxt.split(RegExp(r"(\r|\n)+"));
+      }
+      for (var data in datas.reversed) {
+        if (data.isNotEmpty) {
+          item = Item.fromString(data);
+          break;
+        }
+      }
+    }
     print("[$province.LastData] ${item.toString()}");
     // 形成评价组合
     var data = item.data.toList();
@@ -371,8 +393,8 @@ class Repository {
       }
     }
     print("[$province.Suggestion.init] $suggestions");
-    // 遍历统计在线数据
     List<Suggestion> result = new List<Suggestion>();
+    // 遍历统计在线数据
     for (int i = max - 2; i >= 0; i--) {
       item = onlineData[i];
       int len = suggestions.length;
